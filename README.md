@@ -1,4 +1,4 @@
-# Advanced ERP - Flask (Pink Theme)
+# Advanced ERP - Flask 
 
 Minimal Flask-based ERP module (inventory + dashboard) scaffolded with a pink UI theme. Uses SQLite for local development.
 
