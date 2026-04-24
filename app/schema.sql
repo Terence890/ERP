@@ -115,6 +115,38 @@ CREATE TABLE audit_log (
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
+-- Chart of Accounts
+CREATE TABLE accounts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL -- Asset, Liability, Equity, Revenue, Expense
+);
+
+-- Financial transactions (income / expense)
+CREATE TABLE financial_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT DEFAULT (datetime('now')),
+    transaction_type TEXT NOT NULL, -- 'Income' or 'Expense'
+    amount REAL NOT NULL,
+    description TEXT,
+    user_id INTEGER,
+    FOREIGN KEY (user_id) REFERENCES users (id)
+);
+
+-- Journal entries implementing double-entry accounting
+CREATE TABLE journal_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_id INTEGER,
+    date TEXT DEFAULT (datetime('now')),
+    debit_account_id INTEGER NOT NULL,
+    credit_account_id INTEGER NOT NULL,
+    amount REAL NOT NULL,
+    description TEXT,
+    FOREIGN KEY (transaction_id) REFERENCES financial_transactions (id),
+    FOREIGN KEY (debit_account_id) REFERENCES accounts (id),
+    FOREIGN KEY (credit_account_id) REFERENCES accounts (id)
+);
+
 -- Sample data
 INSERT INTO users (username, password, role) VALUES ('admin', 'admin', 'admin');
 INSERT INTO items (name, category, quantity, reorder_level, unit_cost) VALUES
@@ -122,3 +154,19 @@ INSERT INTO items (name, category, quantity, reorder_level, unit_cost) VALUES
 ('Nails', 'Raw Material', 500, 100, 0.01),
 ('Polish', 'Consumable', 50, 10, 3.5);
 INSERT INTO suppliers (name, contact_name, email, phone) VALUES ('Local Timber', 'Carlos', 'carlos@example.com', '555-0100');
+INSERT INTO accounts (name, type) VALUES
+('Cash', 'Asset'),
+('Sales Revenue', 'Revenue'),
+('Utilities Expense', 'Expense'),
+('Inventory Purchase', 'Expense');
+
+-- Sample financial transaction + journal entry
+INSERT INTO financial_transactions (transaction_type, amount, description, user_id) VALUES ('Income', 1500.0, 'Sample sale', 1);
+INSERT INTO journal_entries (transaction_id, debit_account_id, credit_account_id, amount, description)
+VALUES (
+    (SELECT id FROM financial_transactions WHERE transaction_type='Income' AND amount=1500.0 LIMIT 1),
+    (SELECT id FROM accounts WHERE name='Cash' LIMIT 1),
+    (SELECT id FROM accounts WHERE name='Sales Revenue' LIMIT 1),
+    1500.0,
+    'Sample sale'
+);

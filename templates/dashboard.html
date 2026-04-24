@@ -13,8 +13,22 @@
     <div class="card">
       <div class="icon"><i class="fa-solid fa-sack-dollar"></i></div>
       <div>
-        <h3>Inventory Value</h3>
-        <p>{{ '%.2f'|format(total_value) }}</p>
+        <h3>Total Revenue</h3>
+        <p>{{ revenue|currency }}</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+      <div>
+        <h3>Expenses</h3>
+        <p>{{ expenses|currency }}</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="icon"><i class="fa-solid fa-chart-simple"></i></div>
+      <div>
+        <h3>Net Profit</h3>
+        <p>{{ net_profit|currency }}</p>
       </div>
     </div>
     <div class="card">

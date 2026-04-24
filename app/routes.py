@@ -77,6 +77,19 @@ def dashboard():
     category_labels = [r['category'] for r in categories]
     category_values = [r['total'] for r in categories]
     stock_trend = [10, 20, 15, 25, 18, 30, 22]
+    # Financial KPIs: revenue, expenses, net profit
+    try:
+        revenue_row = conn.execute("SELECT IFNULL(SUM(j.amount),0) as total FROM journal_entries j JOIN accounts a ON a.id = j.credit_account_id WHERE a.type='Revenue'").fetchone()
+        revenue = revenue_row['total'] or 0
+    except Exception:
+        revenue = 0
+    try:
+        expenses_row = conn.execute("SELECT IFNULL(SUM(j.amount),0) as total FROM journal_entries j JOIN accounts a ON a.id = j.debit_account_id WHERE a.type='Expense'").fetchone()
+        expenses = expenses_row['total'] or 0
+    except Exception:
+        expenses = 0
+    net_profit = revenue - expenses
+
     return render_template('dashboard.html',
                            total_items=total_items,
                            total_value=total_value,
@@ -84,7 +97,10 @@ def dashboard():
                            transactions_today=transactions_today,
                            category_labels=category_labels,
                            category_values=category_values,
-                           stock_trend=stock_trend)
+                           stock_trend=stock_trend,
+                           revenue=revenue,
+                           expenses=expenses,
+                           net_profit=net_profit)
 
 
 @bp.route('/inventory')
@@ -460,3 +476,109 @@ def ledger_index():
         LIMIT 500
     ''').fetchall()
     return render_template('ledger.html', transactions=transactions)
+
+
+@bp.route('/accounts', methods=['GET', 'POST'])
+def accounts():
+    conn = db.get_db()
+    if request.method == 'POST':
+        name = request.form.get('name')
+        acc_type = request.form.get('type')
+        if not name or not acc_type:
+            flash('Name and type required', 'danger')
+            return redirect(url_for('app.accounts'))
+        conn.execute('INSERT INTO accounts (name, type) VALUES (?,?)', (name, acc_type))
+        conn.commit()
+        flash('Account added', 'success')
+        return redirect(url_for('app.accounts'))
+    accounts = conn.execute('SELECT * FROM accounts ORDER BY type, name').fetchall()
+    return render_template('accounts.html', accounts=accounts)
+
+
+@bp.route('/finance/transaction', methods=['GET', 'POST'])
+def finance_transaction():
+    conn = db.get_db()
+    accounts = conn.execute('SELECT id, name, type FROM accounts ORDER BY name').fetchall()
+    if request.method == 'POST':
+        t_type = request.form.get('transaction_type')
+        try:
+            amount = float(request.form.get('amount') or 0)
+        except ValueError:
+            amount = 0
+        description = request.form.get('description')
+        debit_id = request.form.get('debit_account')
+        credit_id = request.form.get('credit_account')
+        if amount <= 0 or not debit_id or not credit_id or not t_type:
+            flash('Please provide transaction type, accounts and positive amount', 'danger')
+            return redirect(url_for('app.finance_transaction'))
+        cur = conn.execute('INSERT INTO financial_transactions (transaction_type, amount, description, user_id) VALUES (?,?,?,?)', (t_type, amount, description, session.get('user', {}).get('id')))
+        trans_id = cur.lastrowid
+        conn.execute('INSERT INTO journal_entries (transaction_id, debit_account_id, credit_account_id, amount, description) VALUES (?,?,?,?,?)', (trans_id, int(debit_id), int(credit_id), amount, description))
+        conn.commit()
+        flash('Financial transaction recorded', 'success')
+        return redirect(url_for('app.finance_transaction'))
+    return render_template('finance_transaction.html', accounts=accounts)
+
+
+@bp.route('/reports/trial_balance')
+def trial_balance():
+    conn = db.get_db()
+    rows = conn.execute('''
+        SELECT a.id, a.name, a.type,
+          IFNULL((SELECT SUM(amount) FROM journal_entries j WHERE j.debit_account_id = a.id),0) AS total_debits,
+          IFNULL((SELECT SUM(amount) FROM journal_entries j WHERE j.credit_account_id = a.id),0) AS total_credits
+        FROM accounts a
+        ORDER BY a.type, a.name
+    ''').fetchall()
+    # compute balance depending on account type
+    tb = []
+    total_debits = 0
+    total_credits = 0
+    for r in rows:
+        dr = r['total_debits'] or 0
+        cr = r['total_credits'] or 0
+        balance = dr - cr
+        tb.append({'id': r['id'], 'name': r['name'], 'type': r['type'], 'debits': dr, 'credits': cr, 'balance': balance})
+        total_debits += dr
+        total_credits += cr
+    return render_template('trial_balance.html', rows=tb, total_debits=total_debits, total_credits=total_credits)
+
+
+@bp.route('/reports/income_statement')
+def income_statement():
+    conn = db.get_db()
+    # Revenues: credits - debits
+    rev_row = conn.execute('''
+        SELECT IFNULL(SUM(CASE WHEN a.type='Revenue' THEN (j.credit_account_id IS NOT NULL) * j.amount ELSE 0 END),0) as credits,
+               IFNULL(SUM(CASE WHEN a.type='Revenue' THEN (j.debit_account_id IS NOT NULL) * j.amount ELSE 0 END),0) as debits
+        FROM journal_entries j
+        JOIN accounts a ON a.id = j.credit_account_id OR a.id = j.debit_account_id
+        WHERE a.type='Revenue'
+    ''').fetchone()
+    # Expenses: debits - credits
+    exp_row = conn.execute('''
+        SELECT IFNULL(SUM(CASE WHEN a.type='Expense' THEN (j.debit_account_id IS NOT NULL) * j.amount ELSE 0 END),0) as debits,
+               IFNULL(SUM(CASE WHEN a.type='Expense' THEN (j.credit_account_id IS NOT NULL) * j.amount ELSE 0 END),0) as credits
+        FROM journal_entries j
+        JOIN accounts a ON a.id = j.debit_account_id OR a.id = j.credit_account_id
+        WHERE a.type='Expense'
+    ''').fetchone()
+    revenue = (rev_row['credits'] or 0) - (rev_row['debits'] or 0)
+    expenses = (exp_row['debits'] or 0) - (exp_row['credits'] or 0)
+    net = revenue - expenses
+    return render_template('income_statement.html', revenue=revenue, expenses=expenses, net=net)
+
+
+@bp.route('/reports/expense_summary')
+def expense_summary():
+    conn = db.get_db()
+    rows = conn.execute('''
+        SELECT a.id, a.name, IFNULL(SUM(j.amount),0) as total
+        FROM journal_entries j
+        JOIN accounts a ON a.id = j.debit_account_id
+        WHERE a.type='Expense'
+        GROUP BY a.id, a.name
+        ORDER BY total DESC
+    ''').fetchall()
+    total = sum([r['total'] for r in rows])
+    return render_template('expense_summary.html', rows=rows, total=total)

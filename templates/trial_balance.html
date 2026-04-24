@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Trial Balance{% endblock %}
+{% block content %}
+<h2>Trial Balance</h2>
+<table class="table">
+  <thead><tr><th>Account</th><th>Type</th><th>Debits</th><th>Credits</th><th>Balance</th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.name }}</td>
+      <td>{{ r.type }}</td>
+      <td>{{ '%.2f'|format(r.debits) }}</td>
+      <td>{{ '%.2f'|format(r.credits) }}</td>
+      <td>{{ '%.2f'|format(r.balance) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr><td colspan="2">Totals</td><td>{{ '%.2f'|format(total_debits) }}</td><td>{{ '%.2f'|format(total_credits) }}</td><td></td></tr>
+  </tfoot>
+</table>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Accounts{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Chart of Accounts</h2>
+  <p class="muted">Manage accounts used for journal entries</p>
+</div>
+
+<div class="card" style="padding:16px; margin-bottom:16px;">
+  <form method="post" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <input name="name" placeholder="Account name" style="padding:8px;border-radius:8px;border:1px solid #eee;" />
+    <select name="type" style="padding:8px;border-radius:8px;border:1px solid #eee;">
+      <option value="Asset">Asset</option>
+      <option value="Liability">Liability</option>
+      <option value="Equity">Equity</option>
+      <option value="Revenue">Revenue</option>
+      <option value="Expense">Expense</option>
+    </select>
+    <button class="btn primary" type="submit">Add Account</button>
+  </form>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead><tr><th>Account</th><th>Type</th></tr></thead>
+    <tbody>
+      {% for a in accounts %}
+      <tr>
+        <td>{{ a.name }}</td>
+        <td>{{ a.type }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2">No accounts defined</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Expense Summary{% endblock %}
+{% block content %}
+<h2>Expense Summary</h2>
+<table class="table">
+  <thead><tr><th>Expense Account</th><th>Total</th><th>Percent</th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.name }}</td>
+      <td>{{ '%.2f'|format(r.total) }}</td>
+      <td>{{ (r.total / total * 100) if total and total>0 else 0 | round(2) }}%</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot><tr><td>Total</td><td>{{ '%.2f'|format(total) }}</td><td></td></tr></tfoot>
+</table>
+{% endblock %}

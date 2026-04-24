@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Income Statement{% endblock %}
+{% block content %}
+<h2>Income Statement</h2>
+<div class="card" style="padding:16px;">
+  <p><strong>Total Revenue:</strong> {{ revenue|default(0)|round(2) }}</p>
+  <p><strong>Total Expenses:</strong> {{ expenses|default(0)|round(2) }}</p>
+  <p><strong>Net Profit:</strong> {{ net|default(0)|round(2) }}</p>
+</div>
+{% endblock %}
