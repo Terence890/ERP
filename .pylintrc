@@ -1,0 +1,12 @@
+[MASTER]
+
+[MESSAGES CONTROL]
+disable=
+    import-error,
+    import-outside-toplevel
+
+[FORMAT]
+max-line-length=200
+
+[DESIGN]
+min-public-methods=0

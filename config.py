@@ -1,8 +1,11 @@
+"""Application configuration module."""
 import os
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
+
 class Config:
+    """Flask application configuration loaded from environment variables with sensible defaults."""
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret'
     DATABASE = os.environ.get('DATABASE') or os.path.join(BASE_DIR, 'instance', 'database.db')
     # Company details for invoices and headers
