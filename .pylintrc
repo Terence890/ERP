@@ -2,8 +2,7 @@
 
 [MESSAGES CONTROL]
 disable=
-    import-error,
-    import-outside-toplevel
+    import-error
 
 [FORMAT]
 max-line-length=200
