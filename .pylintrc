@@ -1,0 +1,11 @@
+[MASTER]
+
+[MESSAGES CONTROL]
+disable=
+    import-error
+
+[FORMAT]
+max-line-length=200
+
+[DESIGN]
+min-public-methods=0
